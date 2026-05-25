@@ -1,0 +1,39 @@
+{
+  "name": "qa-automation-framework",
+  "version": "1.0.0",
+  "description": "Enterprise-grade QA automation framework using Playwright, TypeScript, BDD, and Allure",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run test:regression",
+    "test:ui": "cucumber-js --tags @ui",
+    "test:api": "cucumber-js --tags @api",
+    "test:smoke": "cucumber-js --tags @smoke",
+    "test:regression": "cucumber-js",
+    "allure:report": "allure generate allure-results -o allure-report --clean",
+    "allure:serve": "allure serve allure-results",
+    "clean": "rm -rf allure-results allure-report dist node_modules/.cache",
+    "lint": "tsc --noEmit"
+  },
+  "keywords": [
+    "playwright",
+    "typescript",
+    "bdd",
+    "cucumber",
+    "allure",
+    "automation"
+  ],
+  "author": "QA Engineering Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@cucumber/cucumber": "^10.0.0",
+    "@cucumber/pretty-formatter": "^1.0.0",
+    "@faker-js/faker": "^8.4.0",
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.10.0",
+    "allure-commandline": "^2.25.0",
+    "dotenv": "^16.3.1",
+    "playwright": "^1.40.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
