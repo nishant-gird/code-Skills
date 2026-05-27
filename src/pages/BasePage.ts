@@ -1,6 +1,11 @@
 import { Page, Locator } from 'playwright';
 import { expect } from '@playwright/test';
 import { logger } from '../utils/logger';
+import {
+  clickWithRetry,
+  waitForVisibleWithRetry,
+  closeAdsComprehensive
+} from '../utils/helpers';
 
 export abstract class BasePage {
   public page: Page;
@@ -67,12 +72,12 @@ export abstract class BasePage {
   }
 
   /**
-   * Click an element
+   * Click an element (with ad-closing retry)
    */
   async clickElement(locator: Locator | string): Promise<void> {
     const element = typeof locator === 'string' ? this.page.locator(locator) : locator;
     logger.debug('Clicking element');
-    await element.click();
+    await clickWithRetry(element, () => this.closeAds());
   }
 
   /**
@@ -111,12 +116,12 @@ export abstract class BasePage {
   }
 
   /**
-   * Wait for element to be visible
+   * Wait for element to be visible (with ad-closing retry)
    */
   async waitForVisible(locator: Locator | string): Promise<void> {
     const element = typeof locator === 'string' ? this.page.locator(locator) : locator;
     logger.debug('Waiting for element to be visible');
-    await element.waitFor({ state: 'visible', timeout: this.timeout });
+    await waitForVisibleWithRetry(element, () => this.closeAds(), this.timeout);
   }
 
   /**
@@ -237,5 +242,12 @@ export abstract class BasePage {
   async getElementCount(locator: Locator | string): Promise<number> {
     const element = typeof locator === 'string' ? this.page.locator(locator) : locator;
     return await element.count();
+  }
+
+  /**
+   * Close ads if present on the page
+   */
+  async closeAds(): Promise<void> {
+    await closeAdsComprehensive(this.page);
   }
 }

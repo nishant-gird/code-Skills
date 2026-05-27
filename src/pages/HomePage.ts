@@ -17,6 +17,7 @@ export class HomePage extends BasePage {
   readonly sliderContainer: Locator = this.page.locator('[id="slider-carousel"]');
   readonly featuredItemsSection: Locator = this.page.locator('text=/Features Items/i');
   readonly subscriptionSection: Locator = this.page.locator('text=/Subscription/i');
+  readonly adsClosedButton:Locator = this.page.locator('.ee span');
 
   constructor(page: Page) {
     super(page);
@@ -27,6 +28,7 @@ export class HomePage extends BasePage {
    */
   async navigateToHome(): Promise<void> {
     await this.goto(`${config.baseUrl}/`);
+    await this.closeAds();
     await this.waitForVisible(this.homeLink);
   }
 
@@ -36,6 +38,8 @@ export class HomePage extends BasePage {
   async verifyHomePageLoaded(): Promise<boolean> {
     const headerVisible = await this.isVisible(this.homeLink);
     const sliderVisible = await this.isVisible(this.sliderContainer);
+    const adsClosedButtonVisible = await this.isVisible(this.adsClosedButton);
+    console.log(`adsClosedButton`, adsClosedButtonVisible);
     return headerVisible && sliderVisible;
   }
 

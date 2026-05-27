@@ -8,7 +8,7 @@ Feature: User API Lifecycle
     And Response should contain new user ID
     When User sends PUT request to /updateAccount with updated data
     Then Response status code should be 200
-    When User sends GET request to /getUserDetailByEmail
+    When User sends GET request to /getUserDetailByEmail with user email
     Then Response status code should be 200
     And Response should contain updated user details
     When User sends DELETE request to /deleteAccount

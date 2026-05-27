@@ -4,6 +4,7 @@ import { APIClient } from '../api/httpClient';
 import { config } from '../utils/config';
 import { logger } from '../utils/logger';
 import { ITestContext } from '../utils/types';
+import { setupAdBlockingRoutes } from '../utils/helpers';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -36,6 +37,9 @@ Before(async function() {
     context = await browser.newContext();
     page = await context.newPage();
 
+    // Setup ad-blocking routes
+    await setupAdBlockingRoutes(page);
+
     // Initialize API client
     apiClient = new APIClient();
     await apiClient.initialize(page);
@@ -50,7 +54,7 @@ Before(async function() {
     this.context = context;
     this.browser = browser;
 
-    logger.info('Browser and API client initialized');
+    logger.info('Browser and API client initialized with ad blocking');
   } catch (error) {
     logger.error('Before hook failed', error);
     throw error;

@@ -3,16 +3,23 @@ import { dataGenerator } from '../utils/dataGenerator';
 import { logger } from '../utils/logger';
 import { testContext } from '../hooks/hooks';
 import { IAPIResponse } from '../utils/types';
+import {
+  ensureApiContext,
+  validateStatusCode,
+  extractArrayFromResponse,
+  assertResponseHasError,
+  assertErrorFormat
+} from '../utils/helpers';
 
 let lastResponse: IAPIResponse<unknown> | null = null;
 let lastStatusCode: number = 0;
 
 // API-001: GET /productsList
 When('User sends GET request to {string}', async function(endpoint: string) {
-  if (!testContext.apiClient) throw new Error('API client not initialized');
+  const apiClient = ensureApiContext(testContext);
 
   try {
-    lastResponse = await testContext.apiClient.get(endpoint);
+    lastResponse = await apiClient.get(endpoint);
     lastStatusCode = lastResponse?.responseCode || 200;
     logger.info(`GET ${endpoint} completed`, { statusCode: lastStatusCode });
   } catch (error) {
@@ -22,42 +29,22 @@ When('User sends GET request to {string}', async function(endpoint: string) {
 });
 
 Then('Response status code should be {int}', async function(expectedCode: number) {
-  if (lastStatusCode !== expectedCode) {
-    throw new Error(`Expected status code ${expectedCode}, got ${lastStatusCode}`);
-  }
-  logger.info(`Status code verified: ${lastStatusCode}`);
+  validateStatusCode(lastStatusCode, expectedCode);
 });
 
 Then('Response status code should be {int} or {int}', async function(code1: number, code2: number) {
-  if (lastStatusCode !== code1 && lastStatusCode !== code2) {
-    throw new Error(`Expected status code ${code1} or ${code2}, got ${lastStatusCode}`);
-  }
-  logger.info(`Status code verified: ${lastStatusCode}`);
+  validateStatusCode(lastStatusCode, [code1, code2]);
 });
 
 Then('Response should contain products array', async function() {
-  if (!lastResponse?.data) {
-    throw new Error('Response does not contain data');
-  }
-
-  const responseData = lastResponse.data as Record<string, unknown>;
-  if (!Array.isArray(responseData.products) && !Array.isArray(lastResponse.data)) {
-    throw new Error('Response does not contain products array');
-  }
-
+  if (!lastResponse) throw new Error('No response received');
+  extractArrayFromResponse(lastResponse, 'products');
   logger.info('Products array verified in response');
 });
 
 Then('Response should contain brands array', async function() {
-  if (!lastResponse?.data) {
-    throw new Error('Response does not contain data');
-  }
-
-  const responseData = lastResponse.data as Record<string, unknown>;
-  if (!Array.isArray(responseData.brands) && !Array.isArray(lastResponse.data)) {
-    throw new Error('Response does not contain brands array');
-  }
-
+  if (!lastResponse) throw new Error('No response received');
+  extractArrayFromResponse(lastResponse, 'brands');
   logger.info('Brands array verified in response');
 });
 
@@ -102,12 +89,12 @@ Then('Brands list should not be empty', async function() {
 
 // API-002: Invalid POST to /productsList
 When('User sends invalid POST request to {string}', async function(endpoint: string) {
-  if (!testContext.apiClient) throw new Error('API client not initialized');
+  const apiClient = ensureApiContext(testContext);
 
   try {
     // Invalid POST (missing required fields)
     const invalidData = { invalid_field: 'invalid_value' };
-    lastResponse = await testContext.apiClient.post(endpoint, invalidData);
+    lastResponse = await apiClient.post(endpoint, invalidData);
     lastStatusCode = lastResponse?.responseCode || 400;
     logger.info(`POST ${endpoint} with invalid data completed`, { statusCode: lastStatusCode });
   } catch (error) {
@@ -117,40 +104,22 @@ When('User sends invalid POST request to {string}', async function(endpoint: str
 });
 
 Then('Response should contain error message', async function() {
-  if (!lastResponse) {
-    throw new Error('No response received');
-  }
-
-  const hasError = lastResponse.error || lastResponse.message || (lastResponse.responseCode && lastResponse.responseCode >= 400);
-
-  if (!hasError) {
-    throw new Error('Response does not contain error message');
-  }
-
-  logger.info('Error message verified in response');
+  if (!lastResponse) throw new Error('No response received');
+  assertResponseHasError(lastResponse);
 });
 
 Then('Response should contain proper error format', async function() {
-  if (!lastResponse) {
-    throw new Error('No response received');
-  }
-
-  const hasErrorStructure = lastResponse.error || lastResponse.message || lastResponse.responseCode;
-
-  if (!hasErrorStructure) {
-    throw new Error('Response does not have proper error format');
-  }
-
-  logger.info('Error format verified');
+  if (!lastResponse) throw new Error('No response received');
+  assertErrorFormat(lastResponse);
 });
 
 // API-004: Invalid PUT to /brandsList
 When('User sends invalid PUT request to {string}', async function(endpoint: string) {
-  if (!testContext.apiClient) throw new Error('API client not initialized');
+  const apiClient = ensureApiContext(testContext);
 
   try {
     const invalidData = { invalid: true };
-    lastResponse = await testContext.apiClient.put(endpoint, invalidData);
+    lastResponse = await apiClient.put(endpoint, invalidData);
     lastStatusCode = lastResponse?.responseCode || 400;
     logger.info(`PUT ${endpoint} with invalid data completed`, { statusCode: lastStatusCode });
   } catch (error) {
@@ -161,14 +130,14 @@ When('User sends invalid PUT request to {string}', async function(endpoint: stri
 
 // API-005: POST /searchProduct with valid parameters
 When('User sends POST request to {string} with search term', async function(endpoint: string) {
-  if (!testContext.apiClient) throw new Error('API client not initialized');
+  const apiClient = ensureApiContext(testContext);
 
   const searchData = {
     search_product: dataGenerator.generateSearchTerm()
   };
 
   try {
-    lastResponse = await testContext.apiClient.post(endpoint, searchData);
+    lastResponse = await apiClient.post(endpoint, searchData);
     lastStatusCode = lastResponse?.responseCode || 200;
     logger.info(`POST ${endpoint} with search term`, { statusCode: lastStatusCode });
   } catch (error) {
@@ -200,11 +169,11 @@ Then('Products should match search criteria', async function() {
 
 // API-006: POST /searchProduct without required parameter
 When('User sends POST request to {string} without required parameter', async function(endpoint: string) {
-  if (!testContext.apiClient) throw new Error('API client not initialized');
+  const apiClient = ensureApiContext(testContext);
 
   try {
     // Send empty data (missing search_product parameter)
-    lastResponse = await testContext.apiClient.post(endpoint, {});
+    lastResponse = await apiClient.post(endpoint, {});
     lastStatusCode = lastResponse?.responseCode || 400;
     logger.info(`POST ${endpoint} without required parameter`, { statusCode: lastStatusCode });
   } catch (error) {
@@ -227,7 +196,7 @@ Then('Response should contain data validation error message', async function() {
 
 // API-007: User Lifecycle - Create Account
 When('User sends POST request to {string} with valid data', async function(endpoint: string) {
-  if (!testContext.apiClient) throw new Error('API client not initialized');
+  const apiClient = ensureApiContext(testContext);
 
   const userData = dataGenerator.generateUserData();
   testContext.userData = userData;
@@ -252,7 +221,7 @@ When('User sends POST request to {string} with valid data', async function(endpo
   };
 
   try {
-    lastResponse = await testContext.apiClient.post(endpoint, createData);
+    lastResponse = await apiClient.post(endpoint, createData);
     lastStatusCode = lastResponse?.responseCode || 201;
     logger.info(`POST ${endpoint} account creation`, { statusCode: lastStatusCode });
   } catch (error) {
@@ -279,8 +248,9 @@ Then('Response should contain new user ID', async function() {
 
 // API-007: Update Account
 When('User sends PUT request to {string} with updated data', async function(endpoint: string) {
-  if (!testContext.apiClient || !testContext.userData) {
-    throw new Error('Missing API client or user data');
+  const apiClient = ensureApiContext(testContext);
+  if (!testContext.userData) {
+    throw new Error('User data not initialized');
   }
 
   const updateData = {
@@ -294,7 +264,7 @@ When('User sends PUT request to {string} with updated data', async function(endp
   };
 
   try {
-    lastResponse = await testContext.apiClient.put(endpoint, updateData);
+    lastResponse = await apiClient.put(endpoint, updateData);
     lastStatusCode = lastResponse?.responseCode || 200;
     logger.info(`PUT ${endpoint} account update`, { statusCode: lastStatusCode });
   } catch (error) {
@@ -304,15 +274,16 @@ When('User sends PUT request to {string} with updated data', async function(endp
 });
 
 // API-007: Get User Detail
-When('User sends GET request to {string}', async function(endpoint: string) {
-  if (!testContext.apiClient || !testContext.userData) {
-    throw new Error('Missing API client or user data');
+When('User sends GET request to {string} with user email', async function(endpoint: string) {
+  const apiClient = ensureApiContext(testContext);
+  if (!testContext.userData) {
+    throw new Error('User data not initialized');
   }
 
   const finalEndpoint = `${endpoint}?email=${testContext.userData.email}`;
 
   try {
-    lastResponse = await testContext.apiClient.get(finalEndpoint);
+    lastResponse = await apiClient.get(finalEndpoint);
     lastStatusCode = lastResponse?.responseCode || 200;
     logger.info(`GET ${endpoint}`, { statusCode: lastStatusCode });
   } catch (error) {
@@ -331,8 +302,9 @@ Then('Response should contain updated user details', async function() {
 
 // API-007: Delete Account
 When('User sends DELETE request to {string}', async function(endpoint: string) {
-  if (!testContext.apiClient || !testContext.userData) {
-    throw new Error('Missing API client or user data');
+  const apiClient = ensureApiContext(testContext);
+  if (!testContext.userData) {
+    throw new Error('User data not initialized');
   }
 
   const deleteData = {
@@ -340,7 +312,7 @@ When('User sends DELETE request to {string}', async function(endpoint: string) {
   };
 
   try {
-    lastResponse = await testContext.apiClient.delete(endpoint, deleteData);
+    lastResponse = await apiClient.delete(endpoint, deleteData);
     lastStatusCode = lastResponse?.responseCode || 200;
     logger.info(`DELETE ${endpoint}`, { statusCode: lastStatusCode });
   } catch (error) {
@@ -363,7 +335,7 @@ Then('User account should be deleted', async function() {
 
 // API-008: Verify Login with Invalid Credentials
 When('User sends POST request to {string} with invalid credentials', async function(endpoint: string) {
-  if (!testContext.apiClient) throw new Error('API client not initialized');
+  const apiClient = ensureApiContext(testContext);
 
   const loginData = {
     email: dataGenerator.generateInvalidEmail(),
@@ -371,7 +343,7 @@ When('User sends POST request to {string} with invalid credentials', async funct
   };
 
   try {
-    lastResponse = await testContext.apiClient.post(endpoint, loginData);
+    lastResponse = await apiClient.post(endpoint, loginData);
     lastStatusCode = lastResponse?.responseCode || 401;
     logger.info(`POST ${endpoint} with invalid credentials`, { statusCode: lastStatusCode });
   } catch (error) {

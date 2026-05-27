@@ -2,23 +2,18 @@ import { Given, Then } from '@cucumber/cucumber';
 import { HomePage } from '../pages/HomePage';
 import { logger } from '../utils/logger';
 import { testContext } from '../hooks/hooks';
+import { ensurePageContext } from '../utils/helpers';
 
 Given('User navigates to home page', async function() {
-  if (!testContext.page) {
-    throw new Error('Page context not initialized');
-  }
-
-  const homePage = new HomePage(testContext.page);
+  const page = ensurePageContext(testContext);
+  const homePage = new HomePage(page);
   await homePage.navigateToHome();
   logger.info('User navigated to home page');
 });
 
 Then('Home page should be loaded with all essential elements', async function() {
-  if (!testContext.page) {
-    throw new Error('Page context not initialized');
-  }
-
-  const homePage = new HomePage(testContext.page);
+  const page = ensurePageContext(testContext);
+  const homePage = new HomePage(page);
   const isLoaded = await homePage.verifyHomePageLoaded();
 
   if (!isLoaded) {
@@ -29,11 +24,8 @@ Then('Home page should be loaded with all essential elements', async function() 
 });
 
 Then('Products grid should be visible', async function() {
-  if (!testContext.page) {
-    throw new Error('Page context not initialized');
-  }
-
-  const homePage = new HomePage(testContext.page);
+  const page = ensurePageContext(testContext);
+  const homePage = new HomePage(page);
   const isVisible = await homePage.isVisible(homePage.page.locator('[id="slider-carousel"], .features_items'));
 
   if (!isVisible) {
@@ -44,11 +36,8 @@ Then('Products grid should be visible', async function() {
 });
 
 Then('Slider carousel should be displayed', async function() {
-  if (!testContext.page) {
-    throw new Error('Page context not initialized');
-  }
-
-  const homePage = new HomePage(testContext.page);
+  const page = ensurePageContext(testContext);
+  const homePage = new HomePage(page);
   const isVisible = await homePage.isVisible(homePage.page.locator('[id="slider-carousel"]'));
 
   if (!isVisible) {
@@ -59,11 +48,8 @@ Then('Slider carousel should be displayed', async function() {
 });
 
 Then('Header navigation should be accessible', async function() {
-  if (!testContext.page) {
-    throw new Error('Page context not initialized');
-  }
-
-  const homePage = new HomePage(testContext.page);
+  const page = ensurePageContext(testContext);
+  const homePage = new HomePage(page);
   const isVisible = await homePage.isVisible(homePage.homeLink);
 
   if (!isVisible) {
@@ -73,12 +59,9 @@ Then('Header navigation should be accessible', async function() {
   logger.info('Header navigation verified');
 });
 
-Then('{string} link should be visible in header', async function(linkName: string) {
-  if (!testContext.page) {
-    throw new Error('Page context not initialized');
-  }
-
-  const homePage = new HomePage(testContext.page);
+Then('{word} link should be visible in header', async function(linkName: string) {
+  const page = ensurePageContext(testContext);
+  const homePage = new HomePage(page);
   const link = homePage.page.getByRole('link', { name: new RegExp(linkName, 'i') });
   const isVisible = await homePage.isVisible(link);
 
